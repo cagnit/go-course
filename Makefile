@@ -1,1 +1,9 @@
-run:\n\tgo run ./cmd/app\n\nbuild:\n\tgo build -o bin/app ./cmd/app\n\ntest:\n\tgo test ./...
+run:
+	go run ./cmd/app
+
+build:
+	go build -o ../bin/app ./cmd/app
+
+link:
+	go fmt ./...
+	go vet ./...

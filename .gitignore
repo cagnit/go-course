@@ -1,1 +1,2 @@
-/bin/\n/vendor/\n.env\n*.exe\n*.log
+/bin/
+/.env
