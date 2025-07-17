@@ -8,7 +8,7 @@ import (
 
 func main() {
     for {
-        fmt.Println("1 — Расчёт зарплаты")
+        fmt.Println("1 — Конвертация")
         fmt.Println("2 — Расчёт транзакций за неделю")
         fmt.Println("0 — Выход")
         fmt.Print("Выберите действие: ")
