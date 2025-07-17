@@ -19,7 +19,7 @@ func main() {
         switch choice {
         case 1:
             var userNumber int64
-    		fmt.Print("Введите количество часов: ")
+    		fmt.Print("Введите сумму: ")
     		fmt.Scan(&userNumber)
 
     		salary := converter.CalculateSalary(userNumber)
