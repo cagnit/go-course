@@ -535,26 +535,26 @@ delete(set, "apple")
 
 ### Таблица: `terminals`
 
-| Поле          | Тип данных | Описание       |
-| ------------- | ---------- | -------------- |
-| id            | UUID (PK)  | Уникальный ID  |
-| client_id     | TEXT       | ID клиента     |
-| client_secret | TEXT       | Секретный ключ |
-| uuid          | TEXT       | Активен ли     |
+| Поле          | Тип данных | Описание                                   |
+| ------------- | ---------- | -------------------------------------------|
+| id            | UUID (PK)  | Уникальный ID                              |
+| client_id     | TEXT       | ID клиента                                 |
+| client_secret | TEXT       | Секретный ключ                             |
+| uuid          | TEXT       | Уникальный ID терминала в UUID формате     |
 
 ### Таблица: `transactions`
 
-| Поле           | Тип           | Описание       |
-| -------------- | ------------- | -------------- |
-| id             | UUID          | ID транзакции  |
-| terminal_id    | UUID          | FK на терминал |
-| order_id       | TEXT          | ID клиента     |
-| amount         | NUMERIC(12,2) | Сумма          |
-| status         | TEXT          | Статус         |
-| created_at     | TIMESTAMP     | Создана        |
-| status_changed | TIMESTAMP     | Статус изменён |
-| code           | TEXT          | Код            |
-| message        | TEXT          | Сообщение      |
+| Поле           | Тип           | Описание          |
+| -------------- | ------------- | ------------------|
+| id             | UUID          | ID транзакции     |
+| terminal_id    | UUID          | FK на терминал    |
+| order_id       | TEXT          | ID клиента        |
+| amount         | NUMERIC(12,2) | Сумма             |
+| status         | TEXT          | Статус            |
+| created_at     | TIMESTAMP     | Создана           |
+| status_changed | TIMESTAMP     | Статус изменён    |
+| code           | TEXT          | Код MPS           |
+| message        | TEXT          | Описание mps кода |
 
 ---
 
