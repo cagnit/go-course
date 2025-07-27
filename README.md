@@ -592,3 +592,287 @@ delete(set, "apple")
 - Создание транзакций и смена статусов
 
 ---
+
+## Неделя 3: Методы, интерфейсы и работа с ошибками.
+
+---
+
+### Методы в Go
+
+Методы — это функции, которые привязаны к определённому типу.
+
+```go
+type MFS struct {
+    Msisdn      string             `gorm:"column:number;primaryKey"`
+    MobileOwner consts.MobileOwner `gorm:"column:id_operator"`
+}
+
+func (MFS) TableName() string {
+    return "schema.mfs"
+}
+
+func (m *MFS) By(msisdn string) error {
+    return db.Database.Where(MFS{Msisdn: msisdn}).First(&m).Error
+}
+```
+- MFS это структура соответствующая таблице schema.mfs в БД
+- Метод TableName сообщает GORM, какое имя таблицы использовать
+- Метод By выполняет запрос к базе данных по номеру телефона пользователя и загружает результат в текущий экземпляр **&m**
+- Указатель (*MFS) используется, так как метод изменяет содержимое структуры
+- Вызов Error в конце вернет ошибку если такой записи нет или есть проблемы с подключением к БД
+
+---
+
+### Интерфейсы
+
+Интерфейсы — основной способ абстракции в Go.
+Go не поддерживает классы и наследование, как в других ООП-языках.
+Вместо этого используются интерфейсы — они описывают поведение, не привязываясь к конкретной реализации.
+
+Если тип реализует все методы интерфейса — он автоматически считается его реализацией (без implements, extends и т.п.). Это называется duck typing: "если оно выглядит как утка и крякает как утка, значит, это утка".
+
+Интерфейсы позволяют писать обобщённый и расширяемый код.
+
+
+```go
+package main
+
+import (
+	"errors"
+	"io"
+	"log"
+	"net/http"
+)
+
+type Authenticator interface {
+    SetAuth(req *http.Request) error
+}
+
+type BasicAuth struct {
+    Username string
+    Password string
+}
+
+type BearerAuth struct {
+    Token string
+}
+
+func (ba *BasicAuth) SetAuth(req *http.Request) error {
+    if ba.Username == "" || ba.Password == "" {
+        return errors.New("username or password is not set")
+    }
+    req.SetBasicAuth(ba.Username, ba.Password)
+    return nil
+}
+
+func (bt *BearerAuth) SetAuth(req *http.Request) error {
+    if bt.Token == "" {
+        return errors.New("token is not set")
+    }
+    req.Header.Set("Authorization", "Bearer "+bt.Token)
+    return nil
+}
+
+func SendRequest(auth Authenticator, url string) error {
+    // собираем запрос
+    req, _ := http.NewRequest("GET", url, nil)
+    // подключаем авторизацию
+    if auth != nil {
+        if errAuth := auth.SetAuth(req); errAuth != nil {
+            return errAuth
+        }
+    }
+    // отправляем запрос
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
+        if resp.StatusCode != 200 {
+            body, _ := io.ReadAll(resp.Body)
+            return errors.New(string(body))
+    }
+    return nil
+}
+
+func main() {
+    auth := &BearerAuth{Token: "secrettoken"}
+    // или используем BasicAuth:
+    // auth := &BasicAuth{Username: "admin", Password: "admin"}
+    
+    err := SendRequest(auth, "https://example.com/")
+    if err != nil {
+        log.Fatal("Ошибка при отправке:", err)
+    }
+}
+```
+
+- Определён интерфейс Authenticator, который требует реализацию одного метода:
+```
+SetAuth(req *http.Request) error
+```
+- Реализованы два типа авторизации:
+  BasicAuth — добавляет логин и пароль в заголовок Authorization (в формате Basic).
+  BearerAuth — добавляет токен в заголовок Authorization (в формате Bearer)
+- Функция SendRequest принимает интерфейс Authenticator как параметр, что позволяет использовать любой тип, реализующий нужный метод.
+
+- Интерфейсы позволяют писать обобщённый код
+- Интерфейс может содержать один или несколько методов
+- Один тип может реализовать сразу несколько интерфейсов
+
+### Пустой интерфейс, принимающий любой тип.
+
+```go
+func CustomPrint(i interface{}) {
+    fmt.Printf("Тип: %T, значение: %v\n", i, i)
+}
+
+func main() {
+    CustomPrint(322)
+    CustomPrint("I like AMFS")
+    CustomPrint(MFS{Msisdn: "777777777"})
+}
+```
+---
+
+### Интерфейс `error`
+
+`error` — это встроенный интерфейс:
+
+```go
+type error interface {
+    Error() string
+}
+```
+
+Любой тип, реализующий `Error() string`, можно использовать как ошибку.
+
+---
+
+### Создание ошибок
+
+#### error это тоже интерфейс:
+
+```go
+type error interface {
+    Error() string
+}
+```
+
+
+#### создаем простую ошибку:
+
+```go
+import "errors"
+
+err := errors.New("что-то пошло не так")
+```
+
+#### Обертываем ошибку
+
+```go
+import "fmt"
+
+err := doSomething()
+if err != nil {
+    return fmt.Errorf("не удалось выполнить doSomething: %w", err)
+}
+```
+
+#### Создаем кастомную ошибку:
+
+```go
+var BaseGatewayError *GatewayError
+
+type GatewayError struct {
+    Message string
+}
+
+func (e *GatewayError) Error() string {
+    return e.Message
+}
+
+func NewGatewayError(message string) error {
+    return &GatewayError{message}
+}
+```
+
+#### Проверка на тип ошибки
+
+```go
+if errors.As(err, &BaseGatewayError) {
+    fmt.Println("Gateway Error Response:", BaseGatewayError.Message)
+}
+```
+---
+
+### Обработка ошибок
+
+Go использует явную проверку ошибок:
+
+```go
+f, err := os.Open("netflix.txt")
+if err != nil {
+    log.Fatal(err)
+}
+defer f.Close()
+```
+В Go нет исключений — только проверка через `if err != nil`.
+
+
+## panic и recover
+
+#### `panic` используется в случае **фатальных ошибок** — когда программа не может продолжать работу:
+
+```go
+panic("неожиданная ошибка")
+```
+
+Паника может происходить и неявно:
+
+```go
+var input string
+switch strings.Split(input, " ")[1] {
+    // panic: runtime error: index out of range [1] with length 1
+}
+```
+
+Не стоит использовать `panic` для обычных ошибок:
+
+```go
+func divide(a, b int) int {
+    if b == 0 {
+        panic("division by zero")
+    }
+    return a / b
+}
+```
+
+---
+
+#### `recover` — перехват panic
+
+`recover` используется внутри `defer` для перехвата паники и предотвращения аварийного завершения:
+
+```go
+func safeCall() {
+    defer func() {
+        if r := recover(); r != nil {
+            fmt.Println("Восстановлено после паники:", r)
+        }
+    }()
+    mightPanic()
+}
+```
+
+---
+
+### Когда использовать panic/recover
+
+Используйте `panic` и `recover` **только в исключительных случаях**, например:
+
+- в middleware для HTTP-серверов (чтобы не упал весь процесс)
+- при защите от неожиданных сбоев на верхнем уровне приложения
+
+### Задания:
+
